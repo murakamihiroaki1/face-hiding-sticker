@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>顔隠しスタンプアプリ</title>
+  <meta name="description" content="スマホでも使える、画像に顔隠しスタンプを載せて保存できるアクセシブルな静的アプリ" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 24px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 20px 20px 8px;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .card-body {
+      padding: 20px;
+    }
+    .section { margin-bottom: 20px; }
+    .label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    input[type="file"], input[type="range"] { width: 100%; }
+    input[type="file"] {
+      padding: 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      background: #fff;
+      min-height: 48px;
+      font-size: 16px;
+    }
+    .hint, .control-help {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+    .row-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .btn-grid, .keyboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 16px;
+      min-height: 48px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s ease, opacity 0.2s ease;
+    }
+    button:hover { opacity: 0.92; }
+    button:active { transform: scale(0.98); }
+    .btn { background: #e2e8f0; color: #0f172a; }
+    .btn-primary {
+      width: 100%;
+      background: #0f172a;
+      color: #fff;
+      margin-top: 12px;
+    }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .kbd-btn { background: #f1f5f9; color: #0f172a; }
+    .preview-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 12px;
+      background: #fff;
+      box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    canvas {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: block;
+      border-radius: 16px;
+      background: #e2e8f0;
+      cursor: move;
+      touch-action: none;
+    }
+    .preview-text {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+    }
+    .stamp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .stamp-thumb {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 96px;
+      padding: 10px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 16px;
+      background: #fff;
+      cursor: pointer;
+      text-align: center;
+    }
+    .stamp-thumb img {
+      width: 54px;
+      height: 54px;
+      object-fit: contain;
+      pointer-events: none;
+    }
+    .stamp-thumb span {
+      font-size: 12px;
+      line-height: 1.3;
+      color: #334155;
+      pointer-events: none;
+    }
+    .stamp-thumb[aria-checked="true"] {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+      background: #eff6ff;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    button:focus-visible,
+    input:focus-visible,
+    canvas:focus-visible {
+      outline: 3px solid #2563eb;
+      outline-offset: 2px;
+    }
+    @media (max-width: 960px) {
+      .wrap {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+      .card-header { font-size: 20px; }
+      .card-body { padding: 16px; }
+    }
+    @media (max-width: 560px) {
+      .btn-grid, .keyboard-grid { grid-template-columns: 1fr; }
+      .stamp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .preview-text { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="card-header">顔隠しスタンプアプリ</div>
+      <div class="card-body">
+        <div class="section">
+          <div class="hint" id="appHelp">スマホでもPCでも使えます。画像をアップロードし、スタンプを顔の位置へ移動して保存してください。</div>
+        </div>
+
+        <div class="section">
+          <label class="label" for="photoInput">元画像をアップロード</label>
+          <input id="photoInput" type="file" accept="image/*" aria-describedby="appHelp" />
+        </div>
+
+        <div class="section">
+          <div class="label">内蔵スタンプを選択</div>
+          <div id="presetStampGrid" class="stamp-grid" role="radiogroup" aria-label="内蔵スタンプ一覧"></div>
+          <div class="control-help">サムネイルをタップしてスタンプを選べます。</div>
+        </div>
+
+        <div class="section">
+          <div class="row-between"><span>サイズ</span><span id="scaleValue">28%</span></div>
+          <input id="scaleRange" type="range" min="5" max="80" step="1" value="28" aria-label="スタンプのサイズ" />
+          <div class="control-help">スライダーでスタンプサイズを調整できます。</div>
+        </div>
+
+        <div class="section">
+          <div class="row-between"><span>回転</span><span id="rotationValue">0°</span></div>
+          <input id="rotationRange" type="range" min="-180" max="180" step="1" value="0" aria-label="スタンプの回転" />
+          <div class="control-help">スライダーでスタンプを回転できます。</div>
+        </div>
+
+        <div class="btn-grid">
+          <button class="btn" id="smallerBtn" type="button">縮小</button>
+          <button class="btn" id="biggerBtn" type="button">拡大</button>
+          <button class="btn" id="resetBtn" type="button">リセット</button>
+          <button class="btn-danger" id="clearBtn" type="button">画像クリア</button>
+        </div>
+
+        <button class="btn-primary" id="saveBtn" type="button">PNGで保存</button>
+        <div class="status" id="statusMessage" role="status" aria-live="polite">準備完了。画像をアップロードしてください。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">プレビュー</div>
+      <div class="card-body">
+        <p class="preview-text">画像を読み込んだあと、スタンプをドラッグして顔の位置に合わせてください。サイズ変更と回転もできます。</p>
+        <div class="preview-box">
+          <label class="sr-only" for="canvas">画像プレビューキャンバス</label>
+          <canvas id="canvas" width="960" height="960" tabindex="0" role="img" aria-label="顔隠しスタンプの編集エリア"></canvas>
+          <div class="control-help">ドラッグまたはタッチでスタンプを移動できます。キーボードでは矢印キーで移動、Shift+矢印キーで大きく移動します。</div>
+          <div class="keyboard-grid" aria-label="スタンプ位置のキーボード代替操作">
+            <button class="kbd-btn" id="upBtn" type="button">↑ 上へ</button>
+            <button class="kbd-btn" id="downBtn" type="button">↓ 下へ</button>
+            <button class="kbd-btn" id="leftBtn" type="button">← 左へ</button>
+            <button class="kbd-btn" id="rightBtn" type="button">→ 右へ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PRESET_STAMPS = {
+      heartPink: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+          <defs><radialGradient id="g1" cx="50%" cy="42%" r="58%"><stop offset="0%" stop-color="#ffb7db"/><stop offset="100%" stop-color="#ff4fa3"/></radialGradient></defs>
+          <path d="M512 865C470 832 132 589 132 338c0-116 93-210 208-210 69 0 131 33 172 84 41-51 103-84 172-84 115 0 208 94 208 210 0 251-338 494-380 527z" fill="url(#g1)"/>
+          <path d="M512 812C455 771 196 572 196 355c0-81 65-146 145-146 60 0 114 37 144 94 30-57 84-94 144-94 80 0 145 65 145 146 0 217-259 416-316 457z" fill="none" stroke="#ff7fbe" stroke-width="18" opacity="0.9"/>
+        </svg>`,
+      heartRed: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+          <defs><radialGradient id="g2" cx="50%" cy="40%" r="58%"><stop offset="0%" stop-color="#ff8a8a"/><stop offset="100%" stop-color="#ef4444"/></radialGradient></defs>
+          <path d="M512 865C470 832 132 589 132 338c0-116 93-210 208-210 69 0 131 33 172 84 41-51 103-84 172-84 115 0 208 94 208 210 0 251-338 494-380 527z" fill="url(#g2)"/>
+          <path d="M512 812C455 771 196 572 196 355c0-81 65-146 145-146 60 0 114 37 144 94 30-57 84-94 144-94 80 0 145 65 145 146 0 217-259 416-316 457z" fill="none" stroke="#b91c1c" stroke-width="18" opacity="0.75"/>
+        </svg>`,
+      star: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+          <defs><radialGradient id="g3" cx="50%" cy="35%" r="55%"><stop offset="0%" stop-color="#fff3a6"/><stop offset="100%" stop-color="#fbbf24"/></radialGradient></defs>
+          <path d="M512 120l95 194 214 31-155 151 37 213-191-100-191 100 37-213-155-151 214-31z" fill="url(#g3)" stroke="#f59e0b" stroke-width="20" stroke-linejoin="round"/>
+        </svg>`,
+      cloud: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+          <path d="M302 730c-113 0-204-82-204-184 0-90 71-165 165-181 35-101 137-173 258-173 139 0 253 95 274 218 78 18 137 84 137 164 0 95-84 156-191 156H302z" fill="#ffffff" stroke="#93c5fd" stroke-width="20"/>
+        </svg>`,
+      cat: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+          <path d="M242 286l112 86c48-32 101-48 158-48s110 16 158 48l112-86 48 116c23 40 34 84 34 132 0 162-134 294-352 294S160 696 160 534c0-48 11-92 34-132z" fill="#fff7ed" stroke="#9a6b53" stroke-width="18" stroke-linejoin="round"/>
+          <path d="M320 334l69 53-96 32zM704 334l27 85-96-32z" fill="#fecdd3"/>
+          <circle cx="402" cy="548" r="28" fill="#3f3f46"/><circle cx="622" cy="548" r="28" fill="#3f3f46"/>
+          <path d="M512 590c-24 0-44 15-44 33 0 18 20 33 44 33s44-15 44-33c0-18-20-33-44-33z" fill="#fb7185"/>
+          <path d="M260 580h122M642 580h122M244 626h136M628 626h136" stroke="#9a6b53" stroke-width="14" stroke-linecap="round"/>
+        </svg>`,
+      rabbit: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+          <rect x="326" y="82" width="112" height="308" rx="56" fill="#ffffff" stroke="#d1d5db" stroke-width="16"/>
+          <rect x="586" y="82" width="112" height="308" rx="56" fill="#ffffff" stroke="#d1d5db" stroke-width="16"/>
+          <rect x="360" y="118" width="44" height="210" rx="22" fill="#f9a8d4"/>
+          <rect x="620" y="118" width="44" height="210" rx="22" fill="#f9a8d4"/>
+          <circle cx="512" cy="570" r="286" fill="#ffffff" stroke="#d1d5db" stroke-width="18"/>
+          <circle cx="408" cy="560" r="24" fill="#3f3f46"/><circle cx="616" cy="560" r="24" fill="#3f3f46"/>
+          <circle cx="512" cy="620" r="24" fill="#fb7185"/>
+          <path d="M474 650c12 18 26 28 38 28s26-10 38-28" stroke="#9ca3af" stroke-width="14" stroke-linecap="round" fill="none"/>
+          <path d="M284 610h112M628 610h112M262 654h118M644 654h118" stroke="#9ca3af" stroke-width="14" stroke-linecap="round"/>
+        </svg>`
+    };
+
+    const PRESET_STAMP_META = [
+      { key: 'heartPink', label: 'ピンクハート' },
+      { key: 'heartRed', label: 'レッドハート' },
+      { key: 'star', label: '星' },
+      { key: 'cloud', label: '雲' },
+      { key: 'cat', label: '猫' },
+      { key: 'rabbit', label: 'うさぎ' }
+    ];
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const photoInput = document.getElementById('photoInput');
+    const presetStampGrid = document.getElementById('presetStampGrid');
+    const scaleRange = document.getElementById('scaleRange');
+    const rotationRange = document.getElementById('rotationRange');
+    const scaleValue = document.getElementById('scaleValue');
+    const rotationValue = document.getElementById('rotationValue');
+    const smallerBtn = document.getElementById('smallerBtn');
+    const biggerBtn = document.getElementById('biggerBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    const upBtn = document.getElementById('upBtn');
+    const downBtn = document.getElementById('downBtn');
+    const leftBtn = document.getElementById('leftBtn');
+    const rightBtn = document.getElementById('rightBtn');
+
+    const state = {
+      bgImage: null,
+      stampImage: null,
+      stampX: 480,
+      stampY: 360,
+      stampScale: 0.28,
+      stampRotation: 0,
+      dragging: false,
+      dragOffsetX: 0,
+      dragOffsetY: 0,
+    };
+
+    let selectedPresetKey = 'heartPink';
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function setStatus(message) {
+      statusMessage.textContent = message;
+    }
+
+    function svgToDataUrl(svg) {
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    function loadImage(src, callback) {
+      const img = new Image();
+      img.onload = () => callback(img);
+      img.src = src;
+    }
+
+    function readFileAsDataURL(file, callback) {
+      const reader = new FileReader();
+      reader.onload = () => callback(reader.result);
+      reader.readAsDataURL(file);
+    }
+
+    function getStampSize() {
+      if (!state.stampImage) return { w: 220, h: 220 };
+      return {
+        w: state.stampImage.width * state.stampScale,
+        h: state.stampImage.height * state.stampScale,
+      };
+    }
+
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (state.bgImage) {
+        const img = state.bgImage;
+        const imgRatio = img.width / img.height;
+        const canvasRatio = canvas.width / canvas.height;
+        let drawW, drawH, drawX, drawY;
+
+        if (imgRatio > canvasRatio) {
+          drawH = canvas.height;
+          drawW = drawH * imgRatio;
+          drawX = (canvas.width - drawW) / 2;
+          drawY = 0;
+        } else {
+          drawW = canvas.width;
+          drawH = drawW / imgRatio;
+          drawX = 0;
+          drawY = (canvas.height - drawH) / 2;
+        }
+        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      } else {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#475569';
+        ctx.font = '28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('画像をアップロードしてください', canvas.width / 2, canvas.height / 2);
+      }
+
+      if (state.stampImage) {
+        const size = getStampSize();
+        ctx.save();
+        ctx.translate(state.stampX, state.stampY);
+        ctx.rotate((state.stampRotation * Math.PI) / 180);
+        ctx.drawImage(state.stampImage, -size.w / 2, -size.h / 2, size.w, size.h);
+        ctx.restore();
+      }
+    }
+
+    function updateLabels() {
+      scaleValue.textContent = Math.round(state.stampScale * 100) + '%';
+      rotationValue.textContent = state.stampRotation + '°';
+      scaleRange.value = Math.round(state.stampScale * 100);
+      rotationRange.value = state.stampRotation;
+    }
+
+    function resetStamp() {
+      state.stampX = 480;
+      state.stampY = 360;
+      state.stampScale = 0.28;
+      state.stampRotation = 0;
+      updateLabels();
+      drawCanvas();
+    }
+
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+      const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height),
+      };
+    }
+
+    function pointInStamp(x, y) {
+      const size = getStampSize();
+      const dx = x - state.stampX;
+      const dy = y - state.stampY;
+      const rad = (-state.stampRotation * Math.PI) / 180;
+      const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+      const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+      return Math.abs(rx) <= size.w / 2 && Math.abs(ry) <= size.h / 2;
+    }
+
+    function startDrag(event) {
+      const p = getCanvasPoint(event);
+      if (!pointInStamp(p.x, p.y)) return;
+      state.dragging = true;
+      state.dragOffsetX = p.x - state.stampX;
+      state.dragOffsetY = p.y - state.stampY;
+      event.preventDefault();
+    }
+
+    function moveDrag(event) {
+      if (!state.dragging) return;
+      const p = getCanvasPoint(event);
+      state.stampX = clamp(p.x - state.dragOffsetX, 0, canvas.width);
+      state.stampY = clamp(p.y - state.dragOffsetY, 0, canvas.height);
+      drawCanvas();
+      event.preventDefault();
+    }
+
+    function endDrag() {
+      state.dragging = false;
+    }
+
+    function nudgeStamp(dx, dy) {
+      state.stampX = clamp(state.stampX + dx, 0, canvas.width);
+      state.stampY = clamp(state.stampY + dy, 0, canvas.height);
+      drawCanvas();
+    }
+
+    function updatePresetSelectionUi() {
+      const items = presetStampGrid.querySelectorAll('.stamp-thumb');
+      items.forEach((el) => {
+        el.setAttribute('aria-checked', el.dataset.key === selectedPresetKey ? 'true' : 'false');
+      });
+    }
+
+    function loadPresetStamp(key) {
+      const svg = PRESET_STAMPS[key];
+      if (!svg) return;
+      selectedPresetKey = key;
+      updatePresetSelectionUi();
+      loadImage(svgToDataUrl(svg), (img) => {
+        state.stampImage = img;
+        drawCanvas();
+        const meta = PRESET_STAMP_META.find((x) => x.key === key);
+        setStatus('内蔵スタンプを「' + (meta ? meta.label : key) + '」に変更しました。');
+      });
+    }
+
+    function renderPresetStampGrid() {
+      presetStampGrid.innerHTML = '';
+      PRESET_STAMP_META.forEach((item) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'stamp-thumb';
+        btn.setAttribute('role', 'radio');
+        btn.setAttribute('aria-checked', item.key === selectedPresetKey ? 'true' : 'false');
+        btn.setAttribute('aria-label', item.label);
+        btn.dataset.key = item.key;
+
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = svgToDataUrl(PRESET_STAMPS[item.key]);
+
+        const text = document.createElement('span');
+        text.textContent = item.label;
+
+        btn.appendChild(img);
+        btn.appendChild(text);
+        btn.addEventListener('click', () => loadPresetStamp(item.key));
+        presetStampGrid.appendChild(btn);
+      });
+    }
+
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      readFileAsDataURL(file, (src) => {
+        loadImage(src, (img) => {
+          state.bgImage = img;
+          drawCanvas();
+          setStatus('元画像を読み込みました。スタンプを顔の位置に合わせてください。');
+        });
+      });
+    });
+
+    scaleRange.addEventListener('input', () => {
+      state.stampScale = Number(scaleRange.value) / 100;
+      updateLabels();
+      drawCanvas();
+    });
+
+    rotationRange.addEventListener('input', () => {
+      state.stampRotation = Number(rotationRange.value);
+      updateLabels();
+      drawCanvas();
+    });
+
+    smallerBtn.addEventListener('click', () => {
+      state.stampScale = clamp(state.stampScale - 0.03, 0.05, 0.8);
+      updateLabels();
+      drawCanvas();
+      setStatus('スタンプを縮小しました。');
+    });
+
+    biggerBtn.addEventListener('click', () => {
+      state.stampScale = clamp(state.stampScale + 0.03, 0.05, 0.8);
+      updateLabels();
+      drawCanvas();
+      setStatus('スタンプを拡大しました。');
+    });
+
+    resetBtn.addEventListener('click', () => {
+      resetStamp();
+      setStatus('スタンプ位置と設定をリセットしました。');
+    });
+
+    clearBtn.addEventListener('click', () => {
+      state.bgImage = null;
+      drawCanvas();
+      setStatus('元画像をクリアしました。');
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = 'face-stamped-image.png';
+      a.click();
+      setStatus('PNG画像を保存しました。');
+    });
+
+    upBtn.addEventListener('click', () => { nudgeStamp(0, -10); setStatus('スタンプを上に移動しました。'); });
+    downBtn.addEventListener('click', () => { nudgeStamp(0, 10); setStatus('スタンプを下に移動しました。'); });
+    leftBtn.addEventListener('click', () => { nudgeStamp(-10, 0); setStatus('スタンプを左に移動しました。'); });
+    rightBtn.addEventListener('click', () => { nudgeStamp(10, 0); setStatus('スタンプを右に移動しました。'); });
+
+    canvas.addEventListener('mousedown', startDrag);
+    canvas.addEventListener('mousemove', moveDrag);
+    canvas.addEventListener('mouseup', endDrag);
+    canvas.addEventListener('mouseleave', endDrag);
+    canvas.addEventListener('touchstart', startDrag, { passive: false });
+    canvas.addEventListener('touchmove', moveDrag, { passive: false });
+    canvas.addEventListener('touchend', endDrag);
+
+    canvas.addEventListener('keydown', (event) => {
+      const step = event.shiftKey ? 30 : 10;
+      if (event.key === 'ArrowUp') {
+        nudgeStamp(0, -step);
+        setStatus('スタンプを上に移動しました。');
+        event.preventDefault();
+      } else if (event.key === 'ArrowDown') {
+        nudgeStamp(0, step);
+        setStatus('スタンプを下に移動しました。');
+        event.preventDefault();
+      } else if (event.key === 'ArrowLeft') {
+        nudgeStamp(-step, 0);
+        setStatus('スタンプを左に移動しました。');
+        event.preventDefault();
+      } else if (event.key === 'ArrowRight') {
+        nudgeStamp(step, 0);
+        setStatus('スタンプを右に移動しました。');
+        event.preventDefault();
+      }
+    });
+
+    renderPresetStampGrid();
+    loadPresetStamp('heartPink');
+    updateLabels();
+    setStatus('準備完了。画像をアップロードしてください。');
+  </script>
+</body>
+</html>
